@@ -10,6 +10,7 @@ import WebCafe.Service.UserService;
 import WebCafe.Ultils.CafeUltils;
 import WebCafe.Ultils.EmailUtils;
 import WebCafe.Wrapper.UserWrapper;
+import com.google.common.base.Strings;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -136,6 +137,45 @@ public class UserServiceImpl  implements UserService {
             }else {
                 return CafeUltils.getResponseEntity(CafeConstants.UNAUTHORIZED_ACCESS,HttpStatus.UNAUTHORIZED);
             }
+        }catch (Exception ex){
+            ex.printStackTrace();
+        }
+        return CafeUltils.getResponseEntity(CafeConstants.SOMETHING_WENT_WRONG, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @Override
+    public ResponseEntity<String> checkToken() {
+        return CafeUltils.getResponseEntity("true",HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<String> changePassword(Map<String, String> requestMap) {
+        try{
+            User userObj = userDao.findByEmail(jwtFilter.getCurrentUser());
+            if(!userObj.equals(null)){
+                if(userObj.getPassword().equalsIgnoreCase(requestMap.get("oldPassword"))){
+                    userObj.setPassword(requestMap.get("newPassword"));
+                    userDao.save(userObj);
+                    return CafeUltils.getResponseEntity("Password updated",HttpStatus.OK);
+                }
+                return CafeUltils.getResponseEntity("Incorrect old password",HttpStatus.BAD_REQUEST);
+            }
+            return CafeUltils.getResponseEntity(CafeConstants.SOMETHING_WENT_WRONG,HttpStatus.INTERNAL_SERVER_ERROR);
+
+        }catch(Exception ex){
+            ex.printStackTrace();
+        }
+        return CafeUltils.getResponseEntity(CafeConstants.SOMETHING_WENT_WRONG, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @Override
+    public ResponseEntity<String> forgotPassword(Map<String, String> requestMap) {
+        try{
+            User user = userDao.findByEmail(requestMap.get("email"));
+            if(!Objects.isNull(user) && !Strings.isNullOrEmpty(user.getEmail()))
+                emailUtils.forgotMail(user.getEmail(),"Credentials by Web Cafe", user.getPassword());
+            return CafeUltils.getResponseEntity("Check your mail for Credentials", HttpStatus.BAD_REQUEST);
+
         }catch (Exception ex){
             ex.printStackTrace();
         }
